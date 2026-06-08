@@ -1,0 +1,388 @@
+
+    <style>
+        
+        
+    /* RESET & VARIÁVEIS */
+    :root {
+      --rosa-neon: #ff1493;
+      --rosa-claro: #ffb7c5;
+      --dark-bg: #050505;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      color: #e0e0e0;
+      overflow: hidden; /* Evita rolagem na página de escolha */
+      background-color: var(--dark-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    /* FUNDO E CANVAS (Mantendo a conexão visual com a página inicial) */
+    .fundo-realista {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=2000&auto=format&fit=crop') center/cover no-repeat;
+      filter: brightness(0.25) contrast(1.2);
+      z-index: -3;
+    }
+
+    #sakura-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* CABEÇALHO COM O TÍTULO */
+    header {
+      position: absolute;
+      top: 5vh;
+      text-align: center;
+      width: 100%;
+      z-index: 2;
+    }
+
+    header h1 {
+      font-family: 'Syncopate', sans-serif;
+      font-size: clamp(1.5rem, 4vw, 3rem);
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    }
+    
+    header h1 span {
+      color: var(--rosa-neon);
+    }
+
+    /* PAINEL CENTRAL (Glassmorphism) */
+    .centro {
+      background: rgba(15, 15, 15, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 20, 147, 0.2);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 50px 40px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(255, 20, 147, 0.05);
+      z-index: 2;
+      width: 90%;
+      max-width: 450px;
+      animation: fadeIn 1s ease-out;
+    }
+
+    .centro h2 {
+      font-size: 1.6rem;
+      margin-bottom: 40px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    /* OPÇÕES E BOTÕES */
+    .opcao-container {
+      margin-bottom: 30px;
+    }
+
+    .opcao-container:last-child {
+      margin-bottom: 0;
+    }
+
+    .opcao-container p {
+      font-size: 0.9rem;
+      color: var(--rosa-claro);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 600;
+    }
+
+    /* Botão Neon Cyberpunk */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px 20px;
+      background: transparent;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border: 2px solid var(--rosa-neon);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Efeito de luz passando pelo botão no Hover */
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 20, 147, 0.4), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .btn:hover {
+      background: var(--rosa-neon);
+      color: #050505;
+      box-shadow: 0 0 20px var(--rosa-neon);
+      transform: translateY(-3px);
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+    .ranking-table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+
+    .ranking-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .ranking-table th {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--rosa-neon);
+      padding: 15px;
+      border-bottom: 1px solid var(--border-pink);
+    }
+
+    .ranking-table td {
+      padding: 20px 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.95rem;
+      transition: background 0.3s ease;
+    }
+
+    .ranking-table tr:hover td {
+      background: rgba(255, 20, 147, 0.03);
+    }
+
+    .ranking-table .points {
+      font-family: 'Syncopate', sans-serif;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Estilo para o Top 3 */
+    .top-three td {
+      background: rgba(255, 20, 147, 0.05);
+    }
+
+    .pos-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--rosa-neon);
+      color: #000;
+      font-family: 'Syncopate', sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      box-shadow: 0 0 15px rgba(255, 20, 147, 0.4);
+    }
+
+    @media (max-width: 600px) {
+      .ranking-table th, .ranking-table td {
+        padding: 12px 8px;
+        font-size: 0.8rem;
+      }
+    }
+    /* ANIMAÇÃO DE ENTRADA */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="fundo-realista"></div>
+  <canvas id="sakura-canvas"></canvas>
+
+  <header>
+    <h1><span>Sakura</span> Racing</h1>
+  </header>
+
+  <div class="centro">
+   
+    <div class="opcao-container">
+        <div class="section-divider"></div>
+
+        <article class="glass-panel" id="ranking">
+          <div class="panel-body">
+            <div class="label-chip">Temporada 2025</div>
+            <h2>Classificação Geral</h2>
+            
+            <div class="ranking-table-container">
+                <table class="ranking-table">
+                  <thead>
+                    <tr>
+                      <th>Pos</th>
+                      <th>Piloto</th>
+                      <th>Equipe</th>
+                      <th>Pontos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="top-three">
+                      <td><span class="pos-badge">1</span></td>
+                      <td><strong>Akira Tanaka</strong></td>
+                      <td>Sakura Racing</td>
+                      <td class="points">215</td>
+                    </tr>
+                    <tr class="top-three">
+                      <td><span class="pos-badge">2</span></td>
+                      <td><strong>Kenji Sato</strong></td>
+                      <td>Sakura Racing</td>
+                      <td class="points">198</td>
+                    </tr>
+                    <tr class="top-three">
+                      <td><span class="pos-badge">3</span></td>
+                      <td><strong>Yumi Nara</strong></td>
+                      <td>TechSolutions</td>
+                      <td class="points">185</td>
+                    </tr>
+                    <tr>
+                      <td>4</td>
+                      <td>Lucas Silva</td>
+                      <td>Cryptonagec</td>
+                      <td class="points">160</td>
+                    </tr>
+                    <tr>
+                      <td>5</td>
+                      <td>Hiroshi Ono</td>
+                      <td>Sakura Racing</td>
+                      <td class="points">142</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+      
+              <p style="margin-top: 30px; font-size: 0.8rem; opacity: 0.6;">
+                * Ranking atualizado após o Grande Prêmio do senai.
+              </p>
+            </div>
+          </article>
+    </div>
+  </div>
+
+  <script>
+    /* =======================================================
+       CANVAS 2D - PÉTALAS CAINDO PARA MANTER A IMERSÃO
+       ======================================================= */
+    const canvas = document.getElementById('sakura-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let petals = [];
+    const NUM_PETALS = 50; // Quantidade ajustada para uma tela focada
+
+    function resizeCanvas() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+
+    class Petal {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height - height;
+            this.z = Math.random() * 0.6 + 0.2;
+            this.vx = (Math.random() - 0.5) * 1.2;
+            this.vy = (Math.random() * 1.5 + 0.5) * this.z;
+            this.rotation = Math.random() * Math.PI * 2;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.03;
+            this.flip = Math.random() * Math.PI * 2;
+            this.flipSpeed = (Math.random() - 0.5) * 0.03;
+        }
+
+        update() {
+            this.x += this.vx + Math.sin(this.y * 0.01) * 0.5; // Vento suave
+            this.y += this.vy;
+            this.rotation += this.rotationSpeed;
+            this.flip += this.flipSpeed;
+
+            if (this.y > height + 20 || this.x < -20 || this.x > width + 20) {
+                this.x = Math.random() * width;
+                this.y = -20;
+                this.vx = (Math.random() - 0.5) * 1.2;
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.rotation);
+            ctx.scale(this.z, this.z * Math.abs(Math.cos(this.flip)));
+
+            ctx.beginPath();
+            ctx.moveTo(0, -10);
+            ctx.bezierCurveTo(10, -10, 15, 0, 10, 10);
+            ctx.bezierCurveTo(5, 15, -5, 15, -10, 10);
+            ctx.bezierCurveTo(-15, 0, -10, -10, 0, -10);
+            
+            let gradient = ctx.createLinearGradient(0, -10, 0, 10);
+            gradient.addColorStop(0, 'rgba(255, 183, 197, 0.8)');
+            gradient.addColorStop(1, 'rgba(255, 20, 147, 0.6)');
+
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    function init2D() {
+        resizeCanvas();
+        petals = [];
+        for (let i = 0; i < NUM_PETALS; i++) {
+            petals.push(new Petal());
+        }
+    }
+
+    function animate2D() {
+        ctx.clearRect(0, 0, width, height);
+        petals.forEach(petal => {
+            petal.update();
+            petal.draw();
+        });
+        requestAnimationFrame(animate2D);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    init2D();
+    animate2D();
+  
+   
+</script>

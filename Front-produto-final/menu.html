@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sakura Racing | O Futuro do Automobilismo</title>
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,300;0,400;0,600;0,700;1,300&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    :root {
+      --rosa-neon: #ff1493;
+      --rosa-claro: #ffb7c5;
+      --rosa-mid: #ff4da6;
+      --dark-bg: #040404;
+      --panel-bg: rgba(10, 10, 12, 0.55);
+      --border-subtle: rgba(255, 255, 255, 0.07);
+      --border-pink: rgba(255, 20, 147, 0.2);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      color: #ddd;
+      overflow-x: hidden;
+      background-color: var(--dark-bg);
+      cursor: default;
+    }
+
+    /* ─── CUSTOM SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #080808; }
+    ::-webkit-scrollbar-thumb { background: var(--rosa-neon); border-radius: 3px; }
+
+    /* ─── BACKGROUND ─── */
+    .bg-layer {
+      position: fixed; inset: 0; z-index: -3;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,20,147,0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 50% at 0% 100%, rgba(255,20,147,0.05) 0%, transparent 60%),
+        url('https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=2000&auto=format&fit=crop') center/cover no-repeat;
+      filter: brightness(0.18) contrast(1.3) saturate(0.8);
+    }
+
+    .bg-layer::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    /* ─── NAVBAR & MENU LATERAL ─── */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: clamp(15px, 3vw, 30px);
+      display: flex;
+      justify-content: flex-end;
+      z-index: 1000;
+      pointer-events: none; 
+    }
+
+    .menu-btn {
+      background: rgba(10, 10, 12, 0.65);
+      border: 1px solid var(--border-pink);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      width: 55px;
+      height: 55px;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1001;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    .menu-btn:hover {
+      background: rgba(20, 20, 25, 0.85);
+      box-shadow: 0 0 20px rgba(255,20,147,0.3);
+      border-color: var(--rosa-neon);
+      transform: translateY(-2px);
+    }
+
+    .menu-btn span {
+      display: block;
+      width: 26px;
+      height: 2px;
+      background-color: var(--rosa-neon);
+      border-radius: 2px;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 0 8px rgba(255,20,147,0.5);
+    }
+
+    /* Animação do botão ativo (vira um X) */
+    .menu-btn.active span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+    .menu-btn.active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .menu-btn.active span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+
+    .side-menu {
+      position: fixed;
+      top: 0;
+      right: -320px;
+      width: 320px;
+      height: 100vh;
+      background: rgba(4, 4, 6, 0.85);
+      backdrop-filter: blur(24px) saturate(1.2);
+      -webkit-backdrop-filter: blur(24px) saturate(1.2);
+      border-left: 1px solid var(--border-pink);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      padding: 120px 40px 40px;
+      transition: right 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: -15px 0 40px rgba(0,0,0,0.8);
+    }
+
+    .side-menu.open {
+      right: 0;
+    }
+
+    .side-menu a {
+      color: #fff;
+      text-decoration: none;
+      font-family: 'Syncopate', sans-serif;
+      font-size: 1.1rem;
+      margin-bottom: 30px; /* Reduzido um pouco para caber mais itens confortavelmente */
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      transition: all 0.3s ease;
+      position: relative;
+      width: fit-content;
+    }
+
+    .side-menu a::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--rosa-neon);
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px var(--rosa-neon);
+    }
+
+    .side-menu a:hover {
+      color: var(--rosa-neon);
+      text-shadow: 0 0 15px rgba(255,20,147,0.5);
+      transform: translateX(10px);
+    }
+
+    .side-menu a:hover::after {
+      width: 100%;
+    }
+
+    /* ─── PÉTALAS CANVAS ─── */
+    #sakura-canvas {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      overflow: hidden;
+    }
+
+    #tree-container {
+      position: absolute; inset: 0;
+      z-index: 1;
+      cursor: grab;
+    }
+    #tree-container:active { cursor: grabbing; }
+
+    /* ─── HERO TEXT ─── */
+    .hero-content {
+      position: relative;
+      z-index: 3;
+      text-align: center;
+      pointer-events: none;
+      padding-bottom: clamp(40px, 7vh, 90px);
+      animation: heroReveal 1.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .hero-eyebrow {
+      font-family: 'Syncopate', sans-serif;
+      font-size: clamp(0.5rem, 1.2vw, 0.75rem);
+      letter-spacing: 8px;
+      color: var(--rosa-neon);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      opacity: 0.9;
+    }
+
+    .hero-title {
+      font-family: 'Syncopate', sans-serif;
+      font-size: clamp(2.4rem, 6.5vw, 7rem);
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 6px;
+      line-height: 1;
+      text-shadow: 0 0 60px rgba(255,20,147,0.35), 0 4px 30px rgba(0,0,0,0.9);
+    }
+
+    .hero-title span {
+      color: var(--rosa-neon);
+      text-shadow: 0 0 30px rgba(255,20,147,0.8), 0 0 80px rgba(255,20,147,0.3);
+    }
+
+    .hero-sub {
+      font-size: clamp(0.7rem, 1.4vw, 1rem);
+      color: var(--rosa-claro);
+      letter-spacing: 5px;
+      margin-top: 18px;
+      font-weight: 300;
+      font-style: italic;
+      opacity: 0.8;
+    }
+
+    .hero-scroll-hint {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      opacity: 0.5;
+      animation: scrollBounce 2s ease-in-out infinite;
+    }
+
+    .hero-scroll-hint span {
+      font-size: 0.55rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--rosa-claro);
+    }
+
+    .hero-scroll-hint svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--rosa-neon);
+      fill: none;
+    }
+
+    /* ─── MAIN CONTAINER ─── */
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: clamp(40px, 6vw, 80px) clamp(16px, 4vw, 32px);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(50px, 7vw, 90px);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ─── DIVIDER LINE ─── */
+    .section-divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--rosa-neon), transparent);
+      opacity: 0.25;
+      margin: 0;
+    }
+
+    /* ─── GLASS PANEL ─── */
+    .glass-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(24px) saturate(1.5);
+      -webkit-backdrop-filter: blur(24px) saturate(1.5);
+      border: 1px solid var(--border-subtle);
+      border-top-color: rgba(255,255,255,0.1);
+      border-left-color: rgba(255,255,255,0.07);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow:
+        0 30px 60px rgba(0,0,0,0.7),
+        0 0 0 1px rgba(255,20,147,0.04) inset,
+        0 1px 0 rgba(255,255,255,0.06) inset;
+      transition: border-color 0.5s ease, box-shadow 0.5s ease, transform 0.5s cubic-bezier(0.16,1,0.3,1);
+
+      /* scroll reveal */
+      opacity: 0;
+      transform: translateY(60px);
+    }
+
+    .glass-panel.reveal {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1), border-color 0.5s, box-shadow 0.5s;
+    }
+
+    .glass-panel:hover {
+      border-color: rgba(255,20,147,0.35);
+      box-shadow:
+        0 40px 80px rgba(0,0,0,0.8),
+        0 0 60px rgba(255,20,147,0.12),
+        0 0 0 1px rgba(255,20,147,0.08) inset;
+      transform: translateY(-4px);
+    }
+
+    /* ─── IMAGE WRAPPER — ADAPTIVE RATIO ─── */
+    .img-wrapper {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .img-wrapper::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 50%;
+      background: linear-gradient(to bottom, transparent, rgba(4,4,4,0.7));
+      pointer-events: none;
+    }
+
+    .img-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+      transition: transform 0.8s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .glass-panel:hover .img-wrapper img {
+      transform: scale(1.04);
+    }
+
+    /* Ratio variants */
+    .ratio-cinema { aspect-ratio: 21 / 9; }
+    .ratio-wide    { aspect-ratio: 16 / 9; }
+    .ratio-std     { aspect-ratio: 4  / 3; }
+    .ratio-square  { aspect-ratio: 1  / 1; }
+
+    /* on mobile, collapse ratios to something taller */
+    @media (max-width: 600px) {
+      .ratio-cinema { aspect-ratio: 4 / 3; }
+      .ratio-wide   { aspect-ratio: 4 / 3; }
+    }
+
+    /* ─── PANEL BODY ─── */
+    .panel-body {
+      padding: clamp(24px, 4vw, 48px);
+    }
+
+    /* ─── LABEL CHIP ─── */
+    .label-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--rosa-neon);
+      border: 1px solid rgba(255,20,147,0.3);
+      border-radius: 100px;
+      padding: 5px 14px;
+      margin-bottom: 18px;
+      background: rgba(255,20,147,0.06);
+    }
+
+    .label-chip::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--rosa-neon);
+      box-shadow: 0 0 6px var(--rosa-neon);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    /* ─── HEADINGS ─── */
+    h2 {
+      color: #fff;
+      font-family: 'Syncopate', sans-serif;
+      font-size: clamp(1.1rem, 2.5vw, 1.8rem);
+      margin-bottom: 22px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      line-height: 1.3;
+    }
+
+    /* ─── PARAGRAPH ─── */
+    p {
+      font-size: clamp(0.88rem, 1.5vw, 1.05rem);
+      line-height: 1.85;
+      margin-bottom: 16px;
+      font-weight: 300;
+      color: rgba(220,220,220,0.75);
+    }
+
+    p:last-child { margin-bottom: 0; }
+
+    strong {
+      color: var(--rosa-neon);
+      font-weight: 600;
+      text-shadow: 0 0 10px rgba(255,20,147,0.5);
+    }
+
+    /* ─── STAT ROW ─── */
+    .stat-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+      padding-top: 28px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .stat {
+      flex: 1;
+      min-width: 100px;
+    }
+
+    .stat-value {
+      font-family: 'Syncopate', sans-serif;
+      font-size: clamp(1.4rem, 3vw, 2.2rem);
+      font-weight: 700;
+      color: var(--rosa-neon);
+      text-shadow: 0 0 20px rgba(255,20,147,0.5);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-top: 5px;
+    }
+
+    /* ─── FOOTER ─── */
+    .site-footer {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 40px 20px 60px;
+      font-size: 0.65rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.15);
+    }
+
+    .site-footer strong {
+      color: var(--rosa-neon);
+      text-shadow: none;
+    }
+
+    .nav-danger{color:var(--danger)!important;margin-top:auto}
+
+    .nav-link{
+  text-decoration:none;
+  color:var(--text-mid);
+  font-size:0.9rem;font-weight:600;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  padding:14px 16px;
+  border-radius:10px;
+  transition:var(--t);
+  display:flex;align-items:center;gap:12px;
+  position:relative;overflow:hidden;
+}
+
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes heroReveal {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes scrollBounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50%       { transform: translateX(-50%) translateY(8px); }
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--rosa-neon); }
+      50%       { opacity: 0.4; box-shadow: 0 0 2px var(--rosa-neon); }
+    }
+
+    /* ─── MOBILE REFINEMENTS ─── */
+    @media (max-width: 500px) {
+      .stat-row { gap: 16px; }
+      .label-chip { font-size: 0.55rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-layer"></div>
+  <canvas id="sakura-canvas"></canvas>
+
+  <nav class="navbar">
+    <button class="menu-btn" id="menu-btn" aria-label="Abrir Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </nav>
+</div>
+  <div class="side-menu" id="side-menu">
+    <a href="#inicio">Início</a>
+    <a href="corredores1.html">Corredores</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="voltas.html">Voltas</a>
+    <a href="#equipe">A Equipe</a>
+    <a href="#uniforme">Uniforme</a>
+    <a href="#carro">A Máquina</a>
+    <a href="index.html"  class="nav-link nav-danger">
+      <span  class="icon">⏻</span> Sair do Sistema
+    </a>
+  </div>
+
+  <header class="hero" id="inicio">
+    <div id="tree-container"></div>
+
+    <div class="hero-content">
+      <p class="hero-eyebrow">Temporada 2025 &mdash; Grid Principal</p>
+      <h1 class="hero-title"><span>Sakura</span> Racing</h1>
+      <p class="hero-sub">O Futuro do Automobilismo</p>
+    </div>
+
+    <div class="hero-scroll-hint">
+      
+      <svg viewBox="0 0 24 24" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <article class="glass-panel" id="equipe">
+      <div class="img-wrapper ratio-cinema">
+        <img
+          src="Foto/menu.png"
+          alt="Equipe Sakura Racing"
+          onerror="this.src='https://images.unsplash.com/photo-1532981509315-7489569269e8?q=80&w=2000&auto=format&fit=crop'"
+        >
+      </div>
+      <div class="panel-body">
+        <div class="label-chip">Equipe</div>
+        <h2>A Nova Geração</h2>
+        <p>Diretamente dos boxes para o futuro do automobilismo, esta equipe representa uma nova geração de talentos que une precisão, disciplina e ambição. Jovens, determinados e altamente preparados, esses oito pilotos chegam às pistas com um único objetivo: competir no mais alto nível e deixar sua marca na história.</p>
+        <p>Vestindo as cores <strong>preto e rosa</strong>, símbolo de inovação e identidade forte, o time carrega consigo o apoio de parceiros como TechSolutions e Cryptonagec, refletindo uma fusão entre tecnologia de ponta e desempenho esportivo. Cada integrante traz características únicas — desde controle técnico refinado até agressividade estratégica nas corridas — formando um conjunto equilibrado e extremamente competitivo.</p>
+        <p>Mais do que apenas uma equipe, eles são um projeto de excelência. Com o carro alinhado no grid e os olhos voltados para o horizonte, essa equipe não está apenas participando… <strong>está se preparando para dominar.</strong></p>
+        <div class="stat-row">
+          <div class="stat"><div class="stat-value">8</div><div class="stat-label">Pilotos</div></div>
+          <div class="stat"><div class="stat-value">2</div><div class="stat-label">Patrocinadores</div></div>
+          <div class="stat"><div class="stat-value">1</div><div class="stat-label">Objetivo</div></div>
+        </div>
+      </div>
+    </article>
+
+    <div class="section-divider"></div>
+
+    <article class="glass-panel" id="uniforme">
+      <div class="img-wrapper ratio-wide">
+        <img
+          src="Foto/uni.png"
+          alt="Uniforme Sakura Racing"
+          onerror="this.src='https://images.unsplash.com/photo-1541443131876-44b03de101c5?q=80&w=1400&auto=format&fit=crop'"
+        >
+      </div>
+      <div class="panel-body">
+        <div class="label-chip">Uniforme</div>
+        <h2>Identidade e Performance</h2>
+        <p>Apresentando o uniforme oficial da Sakura Racing — uma fusão perfeita entre tecnologia, identidade e performance. O macacão traz como base o <strong>preto profundo</strong>, simbolizando precisão, foco e domínio. As linhas em <strong>rosa neon</strong> percorrem o traje de forma estratégica, destacando a silhueta dos pilotos e criando uma identidade visual forte, moderna e imediatamente reconhecível.</p>
+        <p>Cada detalhe vai além da estética. O design ergonômico garante mobilidade total dentro do cockpit, enquanto os materiais de alta performance oferecem proteção, leveza e resistência, atendendo aos mais altos padrões do automobilismo.</p>
+        <p>Os patrocinadores, posicionados com equilíbrio e destaque, reforçam a conexão entre inovação tecnológica e esporte de elite. Mais do que um uniforme, este é um símbolo de atitude.</p>
+      </div>
+    </article>
+
+    <div class="section-divider"></div>
+
+    <article class="glass-panel">
+      <div class="img-wrapper ratio-wide">
+        <img
+          src="Foto/bfyew.webp"
+          alt="Capacete Sakura Racing"
+          onerror="this.src='https://images.unsplash.com/photo-1502758712759-3d07742c36cb?q=80&w=1400&auto=format&fit=crop'"
+        >
+      </div>
+      <div class="panel-body">
+        <div class="label-chip">Capacete</div>
+        <h2>Velocidade e Tradição</h2>
+        <p>Velocidade, identidade e tradição se encontram na nova era da Sakura Racing. Este capacete representa mais do que proteção — é a assinatura visual de uma equipe que une elegância e agressividade dentro das pistas. Com uma base em <strong>preto intenso</strong> e detalhes em <strong>rosa vibrante</strong>, o design cria um contraste marcante que transmite energia, precisão e personalidade.</p>
+        <p>As linhas fluidas percorrem toda a estrutura, remetendo à velocidade e ao movimento constante, enquanto o emblema frontal reforça a essência da Sakura Racing: disciplina, foco e evolução contínua. Inspirado na delicadeza e força simbólica da flor de cerejeira, o conceito combina tradição com um espírito competitivo moderno.</p>
+        <p>O visor espelhado completa o visual com um toque futurista, refletindo não apenas a luz da pista, mas também a ambição de quem o veste.</p>
+      </div>
+    </article>
+
+    <div class="section-divider"></div>
+
+    <article class="glass-panel" id="carro">
+      <div class="img-wrapper ratio-cinema">
+        <img
+          src="Foto/carro menu.png"
+          alt="Carro Sakura Racing"
+          onerror="this.src='https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2000&auto=format&fit=crop'"
+        >
+      </div>
+      <div class="panel-body">
+        <div class="label-chip">Carro</div>
+        <h2>A Máquina</h2>
+        <p>Diretamente do centro de inovação da equipe, nasce o novo carro da Sakura Racing — uma máquina projetada para redefinir desempenho, precisão e identidade nas pistas. Com um design agressivo e aerodinâmica refinada, o modelo combina eficiência extrema com uma presença visual marcante.</p>
+        <p>O <strong>preto fosco</strong> domina a carroceria, transmitindo força e elegância, enquanto as linhas em <strong>rosa neon</strong> percorrem cada curva do carro, destacando sua silhueta e reforçando a identidade única da equipe. Cada detalhe foi pensado para performance: do nariz afilado que corta o ar com precisão milimétrica, aos sidepods esculpidos para maximizar o fluxo aerodinâmico, até a asa traseira otimizada para equilíbrio perfeito entre velocidade e estabilidade.</p>
+        <p>Com esse carro, a Sakura Racing não entra apenas na pista… <strong>ela chega para disputar cada curva, cada milésimo e cada posição no topo.</strong></p>
+        <div class="stat-row">
+          <div class="stat"><div class="stat-value">0</div><div class="stat-label">Compromissos</div></div>
+          <div class="stat"><div class="stat-value">∞</div><div class="stat-label">Ambição</div></div>
+          <div class="stat"><div class="stat-value">1°</div><div class="stat-label">Meta</div></div>
+        </div>
+      </div>
+    </article>
+
+  </main>
+
+  <footer class="site-footer">
+    &copy; 2025 &nbsp;<strong>Sakura Racing</strong>&nbsp; &mdash; Todos os direitos reservados
+  </footer>
+
+  <script>
+  /* ══════════════════════════════════════════════════════════════
+     MENU HAMBÚRGUER & NAVEGAÇÃO
+  ══════════════════════════════════════════════════════════════ */
+  const menuBtn = document.getElementById('menu-btn');
+  const sideMenu = document.getElementById('side-menu');
+  const menuLinks = sideMenu.querySelectorAll('a');
+
+  // Abrir e fechar o menu ao clicar no botão
+  menuBtn.addEventListener('click', () => {
+    menuBtn.classList.toggle('active');
+    sideMenu.classList.toggle('open');
+  });
+
+  // Fechar o menu ao clicar em um link
+  menuLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      menuBtn.classList.remove('active');
+      sideMenu.classList.remove('open');
+    });
+  });
+
+  /* ══════════════════════════════════════════════════════════════
+     SCROLL REVEAL
+  ══════════════════════════════════════════════════════════════ */
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('reveal');
+        revealObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.glass-panel').forEach(p => revealObserver.observe(p));
+
+
+  /* ══════════════════════════════════════════════════════════════
+     THREE.JS — SAKURA TREE (HERO)
+  ══════════════════════════════════════════════════════════════ */
+  (() => {
+    const container = document.getElementById('tree-container');
+    const W = () => container.clientWidth;
+    const H = () => container.clientHeight;
+
+    const scene    = new THREE.Scene();
+    const camera   = new THREE.PerspectiveCamera(55, W()/H(), 0.1, 1000);
+    camera.position.set(0, 6, 20);
+    camera.lookAt(0, 7, 0);
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(W(), H());
+    container.appendChild(renderer.domElement);
+
+    /* ── LIGHTS ── */
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const pinkLight = new THREE.PointLight(0xff1493, 3, 60);
+    pinkLight.position.set(4, 14, 6);
+    scene.add(pinkLight);
+    const fillLight = new THREE.PointLight(0xffb7c5, 1, 40);
+    fillLight.position.set(-8, 6, -4);
+    scene.add(fillLight);
+
+    /* ── ROOT GROUP ── */
+    const root = new THREE.Group();
+    scene.add(root);
+
+    /* ── TRUNK: a tapered cylinder ── */
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x1a1008, roughness: 1 });
+    const addTrunk = (g, rx, ry, rz, topR, botR, h, offY) => {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(topR, botR, h, 7), trunkMat);
+      m.position.set(0, offY, 0);
+      m.rotation.set(rx, ry, rz);
+      g.add(m);
+      return m;
+    };
+
+    addTrunk(root, 0, 0, 0, 0.45, 0.9, 5, 2.5);   // main trunk
+
+    /* ── RECURSIVE BRANCHES ── */
+    const branchMat = new THREE.MeshStandardMaterial({ color: 0x1c1208, roughness: 0.95 });
+    function addBranch(parent, level, length, radius, angle, rotY) {
+      if (level === 0) return;
+      const geo  = new THREE.CylinderGeometry(radius * 0.55, radius, length, 6);
+      const mesh = new THREE.Mesh(geo, branchMat);
+      const grp  = new THREE.Group();
+      grp.rotation.z = angle;
+      grp.rotation.y = rotY;
+      mesh.position.y = length / 2;
+      grp.add(mesh);
+      parent.add(grp);
+
+      // two child branches
+      const spread = 0.42;
+      const branchCount = level > 2 ? 3 : 2;
+      for (let i = 0; i < branchCount; i++) {
+        const childGrp = new THREE.Group();
+        childGrp.position.y = length;
+        const rotStep = (Math.PI * 2) / branchCount;
+        addBranch(
+          childGrp,
+          level - 1,
+          length * 0.72,
+          radius  * 0.62,
+          spread + (Math.random() - 0.5) * 0.2,
+          i * rotStep + Math.random() * 0.4
+        );
+        grp.add(childGrp);
+      }
+    }
+
+    // Anchor branches at top of trunk
+    const branchBase = new THREE.Group();
+    branchBase.position.y = 5;
+    root.add(branchBase);
+    const BRANCH_STARTS = 5;
+    for (let i = 0; i < BRANCH_STARTS; i++) {
+      addBranch(
+        branchBase,
+        4,
+        2.8,
+        0.28,
+        0.55 + (Math.random() - 0.5) * 0.15,
+        (i / BRANCH_STARTS) * Math.PI * 2
+      );
+    }
+
+    /* ── BLOSSOM PARTICLES ── */
+    function makeBlossoms(count, spread, centerY, sizeRange) {
+      const geo  = new THREE.BufferGeometry();
+      const pos  = new Float32Array(count * 3);
+      const col  = new Float32Array(count * 3);
+      const sizes = new Float32Array(count);
+
+      for (let i = 0; i < count; i++) {
+        const r     = spread * (0.3 + Math.random() * 0.7);
+        const theta = Math.random() * Math.PI * 2;
+        const phi   = Math.acos(2 * Math.random() - 1);
+        pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+        pos[i*3+1] = centerY + r * Math.sin(phi) * Math.sin(theta) * 0.7;
+        pos[i*3+2] = r * Math.cos(phi);
+
+        // gradient: deep pink → light rose
+        const t = Math.random();
+        col[i*3]   = 1;
+        col[i*3+1] = t * 0.65;
+        col[i*3+2] = 0.55 + t * 0.35;
+
+        sizes[i] = sizeRange[0] + Math.random() * (sizeRange[1] - sizeRange[0]);
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+      geo.setAttribute('size',     new THREE.BufferAttribute(sizes, 1));
+      return geo;
+    }
+
+    /* Shader-based point material for glow effect */
+    const blossomMat = new THREE.PointsMaterial({
+      size: 0.18,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.88,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true,
+    });
+
+    // Main canopy
+    const canopyGeo = makeBlossoms(3500, 5.5, 10, [0.08, 0.24]);
+    const canopy    = new THREE.Points(canopyGeo, blossomMat);
+    root.add(canopy);
+
+    // Sparse outer halo — bigger, dimmer
+    const haloMat = new THREE.PointsMaterial({
+      size: 0.13,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.4,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const haloGeo = makeBlossoms(800, 8, 10, [0.06, 0.16]);
+    root.add(new THREE.Points(haloGeo, haloMat));
+
+    // Dense core glow
+    const coreMat = new THREE.PointsMaterial({
+      size: 0.28,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.5,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const coreGeo = makeBlossoms(600, 2.5, 10, [0.1, 0.3]);
+    root.add(new THREE.Points(coreGeo, coreMat));
+
+    /* ── GROUND PETALS ── */
+    const groundGeo = makeBlossoms(400, 7, 0.1, [0.05, 0.15]);
+    const groundMat = new THREE.PointsMaterial({
+      size: 0.1, vertexColors: true, transparent: true,
+      opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    root.add(new THREE.Points(groundGeo, groundMat));
+
+    /* ── AUTO-ROTATE (manual drag too) ── */
+    let isDragging = false, lastX = 0, velX = 0, rotY = 0;
+
+    container.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; });
+    window.addEventListener('mouseup',  () => { isDragging = false; });
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      velX = (e.clientX - lastX) * 0.008;
+      lastX = e.clientX;
+    });
+
+    container.addEventListener('touchstart', e => { isDragging = true; lastX = e.touches[0].clientX; }, {passive:true});
+    window.addEventListener('touchend',  () => { isDragging = false; });
+    window.addEventListener('touchmove', e => {
+      if (!isDragging) return;
+      velX = (e.touches[0].clientX - lastX) * 0.008;
+      lastX = e.touches[0].clientX;
+    }, {passive:true});
+
+    /* ── RESIZE ── */
+    window.addEventListener('resize', () => {
+      camera.aspect = W() / H();
+      camera.updateProjectionMatrix();
+      renderer.setSize(W(), H());
+    });
+
+    /* ── ANIMATE ── */
+    let t = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      t += 0.012;
+
+      // momentum-based rotation
+      if (isDragging) {
+        rotY += velX;
+      } else {
+        rotY += 0.004; // auto-rotate
+        velX *= 0.92;  // damping
+        rotY += velX;
+      }
+
+      root.rotation.y = rotY;
+
+      // gentle canopy sway
+      canopy.rotation.y += 0.001;
+      canopy.rotation.x = Math.sin(t * 0.3) * 0.015;
+
+      // pinkLight orbit
+      pinkLight.position.x = Math.cos(t * 0.4) * 8;
+      pinkLight.position.z = Math.sin(t * 0.4) * 8;
+      pinkLight.intensity  = 2.5 + Math.sin(t * 1.2) * 0.8;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+  })();
+
+
+  /* ══════════════════════════════════════════════════════════════
+     2D CANVAS — FALLING PETALS
+  ══════════════════════════════════════════════════════════════ */
+  (() => {
+    const canvas = document.getElementById('sakura-canvas');
+    const ctx    = canvas.getContext('2d');
+    let W, H, petals = [];
+    const N = 65;
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+
+    class Petal {
+      constructor(initY) {
+        this.reset(initY ?? -20);
+      }
+      reset(y) {
+        this.x   = Math.random() * W;
+        this.y   = y;
+        this.z   = 0.25 + Math.random() * 0.75; // depth
+        this.vx  = (Math.random() - 0.5) * 1.4;
+        this.vy  = (0.6 + Math.random() * 1.4) * this.z;
+        this.rot = Math.random() * Math.PI * 2;
+        this.rSpeed = (Math.random() - 0.5) * 0.035;
+        this.flip = Math.random() * Math.PI * 2;
+        this.fSpeed = (Math.random() - 0.5) * 0.04;
+        this.wobble = Math.random() * 100;
+        this.alpha = 0.4 + this.z * 0.5;
+      }
+      update() {
+        this.wobble += 0.02;
+        this.x   += this.vx + Math.sin(this.wobble) * 0.6;
+        this.y   += this.vy;
+        this.rot += this.rSpeed;
+        this.flip += this.fSpeed;
+        if (this.y > H + 20 || this.x < -30 || this.x > W + 30)
+          this.reset(-20);
+      }
+      draw() {
+        const scale = this.z;
+        const flipScale = Math.abs(Math.cos(this.flip));
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rot);
+        ctx.scale(scale, scale * flipScale);
+        ctx.globalAlpha = this.alpha;
+
+        // petal shape
+        ctx.beginPath();
+        ctx.moveTo(0, -10);
+        ctx.bezierCurveTo( 10, -10,  16,  0,  10, 10);
+        ctx.bezierCurveTo(  5,  16,  -5, 16, -10, 10);
+        ctx.bezierCurveTo(-16,   0, -10,-10,   0,-10);
+
+        const g = ctx.createLinearGradient(0, -10, 0, 10);
+        g.addColorStop(0, `rgba(255,200,215,${this.alpha})`);
+        g.addColorStop(1, `rgba(255,20,147,${this.alpha * 0.7})`);
+        ctx.fillStyle = g;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function init() {
+      resize();
+      petals = [];
+      for (let i = 0; i < N; i++)
+        petals.push(new Petal(Math.random() * H)); // scatter on load
+    }
+
+    function loop() {
+      ctx.clearRect(0, 0, W, H);
+      petals.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', resize);
+    init();
+    loop();
+  })();
+  </script>
+</body>
+</html>

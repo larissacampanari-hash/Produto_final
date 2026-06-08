@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sakura Racing | Elite Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Syne:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sakura: #ff1a6e;
+  --sakura-dim: rgba(255,26,110,0.15);
+  --sakura-glow: rgba(255,26,110,0.5);
+  --bg: #060608;
+  --glass: rgba(12,12,18,0.75);
+  --glass-light: rgba(255,255,255,0.04);
+  --border: rgba(255,255,255,0.08);
+  --border-pink: rgba(255,26,110,0.3);
+  --text: #f0f0f0;
+  --text-dim: #666;
+  --text-mid: #999;
+  --success: #00e87a;
+  --warning: #ffc840;
+  --danger: #ff3a3a;
+  --ease: cubic-bezier(0.16,1,0.3,1);
+  --t: all 0.45s var(--ease);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;outline:none}
+
+body{
+  font-family:'Syne',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── VIDEO BG ── */
+.video-bg{
+  position:fixed;inset:0;z-index:-2;
+  filter:brightness(0.35) saturate(1.4);
+}
+.video-bg video{width:100%;height:100%;object-fit:cover}
+
+/* ── NOISE OVERLAY ── */
+.noise{
+  position:fixed;inset:0;z-index:-1;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events:none;opacity:.5;
+}
+
+/* ── SAKURA CANVAS ── */
+#sakura-canvas{
+  position:fixed;inset:0;z-index:1;
+  pointer-events:none;
+}
+
+/* ── TOP BAR ── */
+.top-bar{
+  position:fixed;top:0;left:0;width:100%;
+  padding:22px 40px;
+  display:flex;justify-content:space-between;align-items:center;
+  z-index:100;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.7) 0%,transparent 100%);
+}
+
+.logo{
+  font-family:'Orbitron',monospace;
+  font-size:1.15rem;font-weight:900;
+  letter-spacing:4px;
+  display:flex;align-items:center;gap:12px;
+}
+.logo-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--sakura);
+  box-shadow:0 0 14px var(--sakura);
+  animation:pulse 2s ease-in-out infinite;
+}
+.logo span{color:var(--sakura)}
+
+/* ── HAMBURGER ── */
+.menu-btn{
+  width:38px;height:38px;
+  cursor:pointer;
+  display:flex;flex-direction:column;
+  justify-content:center;gap:7px;
+  z-index:1001;background:none;border:none;
+}
+.menu-btn b{
+  display:block;width:100%;height:1.5px;
+  background:var(--text);
+  transition:var(--t);
+  transform-origin:center;
+}
+.menu-btn.active b:nth-child(1){transform:translateY(8.5px) rotate(45deg)}
+.menu-btn.active b:nth-child(2){opacity:0;transform:scaleX(0)}
+.menu-btn.active b:nth-child(3){transform:translateY(-8.5px) rotate(-45deg)}
+
+/* ── SIDEBAR ── */
+.navbar{
+  position:fixed;top:0;right:-320px;
+  width:320px;height:100%;
+  background:rgba(6,6,8,0.95);
+  backdrop-filter:blur(30px);
+  -webkit-backdrop-filter:blur(30px);
+  border-left:1px solid var(--border-pink);
+  z-index:1000;
+  padding:100px 40px 40px;
+  display:flex;flex-direction:column;gap:8px;
+  transition:right 0.5s var(--ease);
+}
+.navbar::before{
+  content:'';
+  position:absolute;top:0;left:0;
+  width:1px;height:100%;
+  background:linear-gradient(to bottom,transparent,var(--sakura),transparent);
+  opacity:.5;
+}
+.navbar.open{right:0}
+
+.nav-link{
+  text-decoration:none;
+  color:var(--text-mid);
+  font-size:0.9rem;font-weight:600;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  padding:14px 16px;
+  border-radius:10px;
+  transition:var(--t);
+  display:flex;align-items:center;gap:12px;
+  position:relative;overflow:hidden;
+}
+.nav-link::before{
+  content:'';
+  position:absolute;inset:0;
+  background:var(--sakura-dim);
+  transform:translateX(-100%);
+  transition:transform 0.4s var(--ease);
+  border-radius:10px;
+}
+.nav-link:hover{color:var(--text)}
+.nav-link:hover::before{transform:translateX(0)}
+.nav-link .icon{font-size:14px;opacity:.7}
+.nav-sep{height:1px;background:var(--border);margin:10px 0}
+.nav-danger{color:var(--danger)!important;margin-top:auto}
+
+/* ── MAIN CONTAINER ── */
+.container{
+  max-width:1200px;
+  margin:0 auto;
+  padding:110px 24px 60px;
+  position:relative;z-index:2;
+}
+
+/* ── PAGE HEADER ── */
+.page-header{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  margin-bottom:40px;
+  flex-wrap:wrap;
+  gap:20px;
+}
+.page-title h2{
+  font-family:'Orbitron',monospace;
+  font-size:0.65rem;
+  letter-spacing:4px;
+  color:var(--sakura);
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+.page-title h1{
+  font-size:2.2rem;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:-0.5px;
+}
+.page-title h1 em{
+  font-style:normal;
+  color:var(--text-dim);
+  font-weight:300;
+}
+
+.stats{
+  display:flex;gap:12px;flex-wrap:wrap;
+}
+.stat{
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:50px;
+  padding:8px 20px;
+  font-size:0.72rem;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+  backdrop-filter:blur(20px);
+  transition:var(--t);
+}
+.stat:hover{border-color:var(--border-pink)}
+.stat b{color:var(--sakura);font-size:0.85rem}
+
+/* ── BUTTON ── */
+.btn{
+  background:var(--sakura);
+  color:#fff;
+  padding:13px 28px;
+  border:none;border-radius:50px;
+  font-family:'Syne',sans-serif;
+  font-weight:700;font-size:0.78rem;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  cursor:pointer;
+  box-shadow:0 0 24px var(--sakura-glow),0 0 60px rgba(255,26,110,0.2);
+  transition:var(--t);
+  position:relative;overflow:hidden;
+}
+.btn::after{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.2),transparent);
+  opacity:0;transition:.3s;
+}
+.btn:hover{
+  transform:translateY(-2px) scale(1.03);
+  box-shadow:0 0 40px var(--sakura),0 8px 30px rgba(255,26,110,0.3);
+}
+.btn:hover::after{opacity:1}
+.btn:active{transform:scale(0.97)}
+
+/* ── CONTROLS BAR ── */
+.controls{
+  display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap;
+}
+.filter-btn{
+  background:var(--glass);
+  border:1px solid var(--border);
+  color:var(--text-mid);
+  padding:8px 18px;
+  border-radius:50px;
+  font-family:'Syne',sans-serif;
+  font-size:0.72rem;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:var(--t);
+  backdrop-filter:blur(20px);
+}
+.filter-btn.active,
+.filter-btn:hover{
+  background:var(--sakura-dim);
+  border-color:var(--border-pink);
+  color:var(--text);
+}
+
+/* ── GRID ── */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+  gap:20px;
+}
+
+/* ── CARD ── */
+.card{
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:30px;
+  position:relative;
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  transition:var(--t);
+  animation:cardIn 0.5s var(--ease) both;
+  overflow:hidden;
+  cursor:default;
+}
+.card::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,26,110,0.5),transparent);
+  opacity:0;transition:.4s;
+}
+.card:hover{
+  border-color:var(--border-pink);
+  transform:translateY(-6px);
+  box-shadow:0 20px 60px rgba(255,26,110,0.1),0 0 0 1px var(--border-pink);
+}
+.card:hover::before{opacity:1}
+
+.card-glow{
+  position:absolute;
+  top:-60px;right:-60px;
+  width:160px;height:160px;
+  background:var(--sakura);
+  border-radius:50%;
+  opacity:0;
+  filter:blur(60px);
+  transition:.5s;
+  pointer-events:none;
+}
+.card:hover .card-glow{opacity:.06}
+
+.card-label{
+  font-size:0.6rem;
+  letter-spacing:3px;
+  color:var(--sakura);
+  text-transform:uppercase;
+  font-weight:700;
+  margin-bottom:8px;
+}
+.card-name{
+  font-family:'Orbitron',monospace;
+  font-size:1.6rem;
+  font-weight:700;
+  line-height:1;
+  margin-bottom:20px;
+}
+.card-divider{
+  height:1px;
+  background:var(--border);
+  margin-bottom:16px;
+}
+.status-row{
+  display:flex;align-items:center;
+  justify-content:space-between;
+}
+.status-tag{
+  display:flex;align-items:center;gap:8px;
+  font-size:0.68rem;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  font-weight:700;
+}
+.status-tag .dot{
+  width:7px;height:7px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+.status-tag.ativo{color:var(--success)}
+.status-tag.ativo .dot{
+  background:var(--success);
+  box-shadow:0 0 10px var(--success);
+  animation:pulse 2s ease-in-out infinite;
+}
+.status-tag.manutencao{color:var(--warning)}
+.status-tag.manutencao .dot{
+  background:var(--warning);
+  box-shadow:0 0 10px var(--warning);
+}
+
+.btn-delete{
+  width:28px;height:28px;
+  background:rgba(255,58,58,0.08);
+  color:var(--danger);
+  border:1px solid rgba(255,58,58,0.15);
+  border-radius:50%;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:.3s;
+  font-size:14px;
+  flex-shrink:0;
+}
+.btn-delete:hover{
+  background:var(--danger);
+  color:#fff;
+  transform:rotate(90deg) scale(1.1);
+  border-color:var(--danger);
+}
+
+/* ── EMPTY STATE ── */
+.empty{
+  grid-column:1/-1;
+  text-align:center;
+  padding:80px 20px;
+  color:var(--text-dim);
+}
+.empty h3{
+  font-size:1.2rem;margin-bottom:8px;color:var(--text-mid);
+}
+.empty p{font-size:.85rem;line-height:1.6}
+
+/* ── MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.85);
+  display:none;justify-content:center;align-items:center;
+  z-index:2000;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+.modal-overlay.show{display:flex}
+.modal-box{
+  background:#0d0d12;
+  border:1px solid var(--border-pink);
+  border-radius:28px;
+  padding:44px;
+  width:90%;max-width:420px;
+  position:relative;
+  animation:modalIn 0.5s var(--ease);
+  box-shadow:0 0 80px rgba(255,26,110,0.15);
+}
+.modal-box::before{
+  content:'';
+  position:absolute;inset:0;
+  border-radius:28px;
+  background:linear-gradient(135deg,rgba(255,26,110,0.05),transparent 60%);
+  pointer-events:none;
+}
+.modal-title{
+  font-family:'Orbitron',monospace;
+  font-size:1.1rem;font-weight:700;
+  margin-bottom:6px;
+}
+.modal-sub{
+  font-size:.78rem;color:var(--text-dim);
+  letter-spacing:1px;margin-bottom:28px;
+}
+.form-group{margin-bottom:16px}
+.form-label{
+  display:block;
+  font-size:.68rem;letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--text-mid);
+  margin-bottom:8px;
+}
+.form-input,
+.form-select{
+  width:100%;padding:14px 18px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);
+  border-radius:12px;
+  color:var(--text);
+  font-family:'Syne',sans-serif;
+  font-size:.9rem;
+  transition:.3s;
+  appearance:none;-webkit-appearance:none;
+}
+.form-input::placeholder{color:var(--text-dim)}
+.form-input:focus,
+.form-select:focus{
+  border-color:var(--sakura);
+  background:rgba(255,26,110,0.05);
+  box-shadow:0 0 0 3px rgba(255,26,110,0.1);
+}
+.form-select option{background:#111;color:#fff}
+.modal-actions{
+  display:flex;gap:12px;margin-top:24px;
+}
+.btn-ghost{
+  flex:1;padding:13px;
+  background:var(--glass-light);
+  border:1px solid var(--border);
+  border-radius:50px;
+  color:var(--text-mid);
+  font-family:'Syne',sans-serif;
+  font-weight:600;font-size:.78rem;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:.3s;
+}
+.btn-ghost:hover{border-color:var(--border-pink);color:var(--text)}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:30px;left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:rgba(12,12,18,0.95);
+  border:1px solid var(--border-pink);
+  border-radius:50px;
+  padding:12px 24px;
+  font-size:.78rem;letter-spacing:1px;
+  z-index:3000;
+  transition:.5s var(--ease);
+  pointer-events:none;
+  display:flex;align-items:center;gap:10px;
+  backdrop-filter:blur(20px);
+  white-space:nowrap;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast .t-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--success);
+  box-shadow:0 0 8px var(--success);
+  flex-shrink:0;
+}
+
+/* ── SAKURA PETAL (canvas fallback / CSS) ── */
+.petal{
+  position:fixed;
+  pointer-events:none;
+  z-index:1;
+  will-change:transform;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes cardIn{
+  from{opacity:0;transform:translateY(30px) scale(0.96)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes modalIn{
+  from{opacity:0;transform:scale(0.9) translateY(20px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+@keyframes pulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.6;transform:scale(0.85)}
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .top-bar{padding:18px 20px}
+  .container{padding:90px 16px 40px}
+  .page-header{flex-direction:column;align-items:flex-start}
+  .page-title h1{font-size:1.6rem}
+  .modal-box{padding:28px}
+}
+</style>
+</head>
+<body>
+
+<div class="video-bg">
+  <video autoplay loop muted playsinline>
+    <source src="Videos/sakura_3d.mp4" type="video/mp4">
+  </video>
+</div>
+<div class="noise"></div>
+<canvas id="sakura-canvas"></canvas>
+
+<div class="top-bar">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <span style="font-family:'Orbitron',monospace;letter-spacing:4px">SAKURA <span>RACING</span></span>
+  </div>
+  <button class="menu-btn" id="menu-btn" onclick="toggleNav()" aria-label="Menu">
+    <b></b><b></b><b></b>
+  </button>
+</div>
+
+<nav class="navbar" id="navbar" aria-label="Navegação principal">
+  <a href="dashboard.html" class="nav-link" onclick="closeNav()">
+    <span class="icon">◈</span> Dashboard
+  </a>
+  <a href="ranking.html" class="nav-link">
+    <span class="icon">◉</span> Ranking Global
+  </a>
+  <a href="#" class="nav-link" onclick="openModal();closeNav()">
+    <span class="icon">＋</span> Novo Corredor
+  </a>
+  <div class="nav-sep"></div>
+  <a href="index.html" class="nav-link nav-danger">
+    <span class="icon">⏻</span> Sair do Sistema
+  </a>
+</nav>
+
+<main class="container">
+  <div class="page-header">
+    <div class="page-title">
+      <h2>Sistema Operacional</h2>
+      <h1>Unidades <em>Ativas</em></h1>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;align-items:flex-end">
+      <div class="stats">
+        <div class="stat">Monitorando: <b id="count-total">0</b></div>
+        <div class="stat">Operacionais: <b id="count-ativos">0</b></div>
+      </div>
+      <button class="btn" onclick="openModal()">Cadastrar Unidade</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter(this,'all')">Todos</button>
+    <button class="filter-btn" data-filter="ativo" onclick="setFilter(this,'ativo')">Operacionais</button>
+    <button class="filter-btn" data-filter="manutencao" onclick="setFilter(this,'manutencao')">Manutenção</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box">
+    <p class="modal-title" id="modal-title">Nova Unidade</p>
+    <p class="modal-sub">REGISTRO DE UNIDADE DE CORRIDA</p>
+    <div class="form-group">
+      <label class="form-label" for="input-nome">ID da Unidade</label>
+      <input class="form-input" type="text" id="input-nome" placeholder="Ex: RX-7 Phantom" autocomplete="off">
+      <label class="form-label" for="input-nome">Equipe</label>
+      <input class="form-input" type="text" id="input-nome" placeholder="Ex: Ferrari" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="input-status">Status Operacional</label>
+      <select class="form-select" id="input-status">
+        <option value="ativo">✓  Sistema Ativo</option>
+        <option value="manutencao">⚙  Em Manutenção</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" style="flex:1.5" onclick="save()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="t-dot"></div>
+  <span id="toast-msg">Unidade registrada</span>
+</div>
+
+<script>
+/* ── STATE ── */
+let db = JSON.parse(localStorage.getItem('sakura_db')) || [
+  {id:1,nome:'A-01',status:'ativo'},
+  {id:2,nome:'A-02',status:'manutencao'}
+];
+let currentFilter = 'all';
+
+/* ── RENDER ── */
+function render(){
+  const grid = document.getElementById('grid');
+  const filtered = currentFilter==='all' ? db : db.filter(i=>i.status===currentFilter);
+  grid.innerHTML = '';
+  if(!filtered.length){
+    grid.innerHTML=`<div class="empty"><h3>Nenhuma unidade encontrada</h3><p>Não há unidades com o filtro selecionado.</p></div>`;
+    updateStats(); return;
+  }
+  filtered.forEach((item,i)=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = `card-${item.id}`;
+    card.style.animationDelay = `${i*0.07}s`;
+    const isAtivo = item.status==='ativo';
+    card.innerHTML=`
+      <div class="card-glow"></div>
+      <p class="card-label">Genesis Unit</p>
+      <h3 class="card-name">${escapeHtml(item.nome)}</h3>
+      <div class="card-divider"></div>
+      <div class="status-row">
+        <div class="status-tag ${item.status}">
+          <div class="dot"></div>
+          ${isAtivo ? 'Sistema ativo' : 'Em manutenção'}
+        </div>
+        <button class="btn-delete" onclick="remove(${item.id})" aria-label="Remover ${escapeHtml(item.nome)}">✕</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  updateStats();
+  persist();
+}
+
+function updateStats(){
+  document.getElementById('count-total').textContent = db.length;
+  document.getElementById('count-ativos').textContent = db.filter(i=>i.status==='ativo').length;
+}
+
+function persist(){
+  localStorage.setItem('sakura_db', JSON.stringify(db));
+}
+
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── FILTER ── */
+function setFilter(btn, val){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = val;
+  render();
+}
+
+/* ── NAV ── */
+function toggleNav(){
+  const nav=document.getElementById('navbar');
+  const btn=document.getElementById('menu-btn');
+  nav.classList.toggle('open');
+  btn.classList.toggle('active');
+}
+function closeNav(){
+  document.getElementById('navbar').classList.remove('open');
+  document.getElementById('menu-btn').classList.remove('active');
+}
+
+/* ── MODAL ── */
+function openModal(){
+  document.getElementById('modal').classList.add('show');
+  document.getElementById('input-nome').focus();
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('show');
+  document.getElementById('input-nome').value='';
+  document.getElementById('input-status').value='ativo';
+}
+document.getElementById('modal').addEventListener('click',function(e){
+  if(e.target===this) closeModal();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeModal();
+});
+document.getElementById('input-nome').addEventListener('keydown',e=>{
+  if(e.key==='Enter') save();
+});
+
+/* ── CRUD ── */
+function save(){
+  const nome = document.getElementById('input-nome').value.trim();
+  const status = document.getElementById('input-status').value;
+  if(!nome) return shakeFocus('input-nome');
+  db.push({id:Date.now(),nome,status});
+  closeModal();
+  render();
+  showToast('Unidade "'+escapeHtml(nome)+'" registrada');
+}
+
+function remove(id){
+  const card = document.getElementById(`card-${id}`);
+  if(!card) return;
+  card.style.transition = 'all 0.35s cubic-bezier(0.4,0,1,1)';
+  card.style.opacity = '0';
+  card.style.transform = 'scale(0.85) translateY(10px)';
+  setTimeout(()=>{
+    db = db.filter(i=>i.id!==id);
+    render();
+  }, 350);
+}
+
+function shakeFocus(id){
+  const el = document.getElementById(id);
+  el.style.animation = 'none';
+  el.style.borderColor = 'var(--danger)';
+  el.style.boxShadow = '0 0 0 3px rgba(255,58,58,0.2)';
+  setTimeout(()=>{ el.style.borderColor=''; el.style.boxShadow=''; }, 1200);
+  el.focus();
+}
+
+/* ── TOAST ── */
+let toastTimer;
+function showToast(msg){
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toast.classList.remove('show'), 3000);
+}
+
+/* ── INIT ── */
+render();
+</script>
+
+<script>
+/* ── SAKURA PARTICLE SYSTEM (Canvas) ── */
+(function(){
+  const canvas = document.getElementById('sakura-canvas');
+  const ctx = canvas.getContext('2d');
+  let petals = [];
+  let W, H;
+  const PETAL_COUNT = 40;
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* Draw a 5-petal sakura flower */
+  function drawPetal(ctx, x, y, r, rotation, alpha){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    ctx.beginPath();
+    for(let i=0; i<5; i++){
+      const angle = (i * 2 * Math.PI / 5) - Math.PI/2;
+      const cx1 = Math.cos(angle - 0.4) * r;
+      const cy1 = Math.sin(angle - 0.4) * r;
+      const cx2 = Math.cos(angle + 0.4) * r;
+      const cy2 = Math.sin(angle + 0.4) * r;
+      const ex  = Math.cos(angle) * r * 1.8;
+      const ey  = Math.sin(angle) * r * 1.8;
+      if(i===0) ctx.moveTo(0,0);
+      ctx.bezierCurveTo(cx1,cy1,ex,ey,cx2,cy2);
+      ctx.lineTo(0,0);
+    }
+    ctx.fillStyle = `hsl(${340 + Math.random()*20}, 85%, 75%)`;
+    ctx.fill();
+    /* inner glow */
+    ctx.beginPath();
+    ctx.arc(0,0,r*0.4,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(255,200,220,0.6)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function spawn(){
+    return {
+      x: Math.random() * W * 1.2 - W * 0.1,
+      y: -20,
+      r: 5 + Math.random() * 7,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.04,
+      vy: 0.6 + Math.random() * 1.2,
+      vx: (Math.random() - 0.5) * 0.8,
+      sway: Math.random() * Math.PI * 2,
+      swaySpeed: 0.01 + Math.random() * 0.02,
+      alpha: 0.55 + Math.random() * 0.35,
+      hue: 330 + Math.random() * 30,
+    };
+  }
+
+  for(let i=0; i<PETAL_COUNT; i++){
+    const p = spawn();
+    p.y = Math.random() * H;
+    petals.push(p);
+  }
+
+  function frame(){
+    ctx.clearRect(0, 0, W, H);
+    petals.forEach((p,i)=>{
+      p.sway += p.swaySpeed;
+      p.x += p.vx + Math.sin(p.sway) * 0.6;
+      p.y += p.vy;
+      p.rot += p.rotSpeed;
+      if(p.y > H + 30){
+        petals[i] = spawn();
+        petals[i].y = -20;
+      }
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = p.alpha;
+      ctx.beginPath();
+      for(let k=0; k<5; k++){
+        const a = (k * 2 * Math.PI / 5) - Math.PI/2;
+        const cx1 = Math.cos(a - 0.45) * p.r;
+        const cy1 = Math.sin(a - 0.45) * p.r;
+        const ex  = Math.cos(a) * p.r * 1.85;
+        const ey  = Math.sin(a) * p.r * 1.85;
+        const cx2 = Math.cos(a + 0.45) * p.r;
+        const cy2 = Math.sin(a + 0.45) * p.r;
+        if(k===0) ctx.moveTo(0,0);
+        ctx.bezierCurveTo(cx1,cy1,ex,ey,cx2,cy2);
+        ctx.lineTo(0,0);
+      }
+      const grad = ctx.createRadialGradient(0,0,0,0,0,p.r*1.85);
+      grad.addColorStop(0, `hsla(${p.hue},90%,88%,1)`);
+      grad.addColorStop(1, `hsla(${p.hue},75%,70%,0.6)`);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0,0,p.r*0.35,0,Math.PI*2);
+      ctx.fillStyle = `hsla(${p.hue-10},80%,90%,0.7)`;
+      ctx.fill();
+      ctx.restore();
+    });
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+</script>
+
+</body>
+</html>
